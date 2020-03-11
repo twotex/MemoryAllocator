@@ -24,24 +24,62 @@ struct Block *free_head;
 
 int main()
 {
-	printf("Size of int: %d\n", sizeof(int));
-	printf("Size of char: %d\n", sizeof(char));
-	printf("Void Pointer Size: %d\n", sizeof(void*));
-	printf("Overhead Size: %d\n", sizeof(struct Block));
 	
+	my_initialize_heap(1048576 + OVERHEAD_SIZE);
+
+	int numOfInts;
+	int dummyInt;
+	printf("How many integers would you like to allocate? ");
+	scanf_s("%d", &numOfInts);
+
+	void* startOfArray = my_malloc(sizeof(int[100]));
+	int* intArrayPtr = (int*)startOfArray;
+
+	for (int count = 0; count < numOfInts; count++)
+	{
+		printf("Integer %d: ", count + 1);
+		scanf_s("%d", &dummyInt);
+		intArrayPtr[count] = dummyInt;
+	}
+
+	double sum = 0;
+	double oneOverN = 1.0 / (double)numOfInts;
+	double arithmeticMean;
+
+	for (int count = 0; count < numOfInts; count++)
+	{
+		sum = sum + (double)intArrayPtr[count];
+	}
+
+	arithmeticMean = sum / numOfInts;
+
+	double partialResult = 0;
+
+	for (int count = 0; count < numOfInts; count++)
+	{
+		partialResult = partialResult + (pow((double)intArrayPtr[count] - arithmeticMean, 2.0));
+	}
+
+	partialResult = oneOverN * partialResult;
+	partialResult = sqrt(partialResult);
+
+	printf("\n\nStandard Deviation: %f\n\n", partialResult);
 	
-	//my_initialize_heap(1048576 + OVERHEAD_SIZE);
-	
-	my_initialize_heap(1028 + OVERHEAD_SIZE);
+	//my_initialize_heap(1028 + OVERHEAD_SIZE);
 
 	/*
+	Test #1
 	void* result1 = my_malloc(sizeof(int));
 	printf("%d\n", result1);
 	my_free(result1);
 	void* result2 = my_malloc(sizeof(int));
 	printf("%d\n", result2);
 	my_free(result2);
+	*/
+	
 
+	/*
+	Test #2
 	void* result3 = my_malloc(sizeof(int));
 	void* result4 = my_malloc(sizeof(int));
 	printf("%d\n", result3);
@@ -49,8 +87,10 @@ int main()
 	my_free(result3);
 	my_free(result4);
 	*/
+	
 
 	/*
+	Test #3
 	void* result5 = my_malloc(sizeof(int));
 	void* result6 = my_malloc(sizeof(int));
 	void* result7 = my_malloc(sizeof(int));
@@ -67,14 +107,17 @@ int main()
 	printf("%d\n", result7);
 	*/
 
-	
+
+	/*
+	Test #4
 	void* result9 = my_malloc(sizeof(char));
 	void* result10 = my_malloc(sizeof(int));
 	printf("%d\n", result9);
 	printf("%d\n", result10);
+	*/
 	
-
 	/*
+	Test #5
 	void* result11 = my_malloc(sizeof(int[100]));
 	void* result12 = my_malloc(sizeof(int));
 	printf("%d\n", result11);
@@ -82,6 +125,7 @@ int main()
 	*/
 
 	/*
+	Test Program
 	int numOfInts;
 	int dummyInt;
 	printf("How many integers would you like to allocate? ");
@@ -119,10 +163,10 @@ int main()
 	partialResult = sqrt(partialResult);
 
 	printf("\n\nStandard Deviation: %f\n\n", partialResult);
-
 	*/
-
+	
 	_getch();
+
 	return 0;
 }
 
@@ -141,19 +185,26 @@ void* my_malloc(int size)
 
 	while (traversal_ptr != NULL)
 	{
-		//traversal_ptr->block_size % VOID_PTR_SIZE == 0 && 
-		if (traversal_ptr->block_size >= size)
+		if (traversal_ptr->block_size % VOID_PTR_SIZE == 0 && traversal_ptr->block_size >= size)
 		{
 			if (traversal_ptr->block_size > (size + OVERHEAD_SIZE + VOID_PTR_SIZE)) //Block needs to be split
 			{
-				int sizeOfNewBlock = traversal_ptr->block_size - size - OVERHEAD_SIZE;
-				struct Block* newlyFormedBlock = traversal_ptr + 1;
-				newlyFormedBlock = ((char*)newlyFormedBlock) + size;
+				int shrunkBlockSize = VOID_PTR_SIZE;
+
+				while (shrunkBlockSize < size)
+				{
+					shrunkBlockSize = shrunkBlockSize + VOID_PTR_SIZE;
+				}
+
+				int sizeOfNewBlock = traversal_ptr->block_size - shrunkBlockSize - OVERHEAD_SIZE;
+
+				struct Block* tempBlock = traversal_ptr + 1;
+				struct Block* newlyFormedBlock = ((char*)tempBlock) + shrunkBlockSize;
 
 				newlyFormedBlock->block_size = sizeOfNewBlock;
 				newlyFormedBlock->next_block = traversal_ptr->next_block;
 
-				traversal_ptr->block_size = size;
+				traversal_ptr->block_size = shrunkBlockSize;
 				traversal_ptr->next_block = NULL;
 
 				
@@ -221,17 +272,3 @@ void my_free(void *data)
 	blockToFree->next_block = free_head;
 	free_head = blockToFree;
 }
-
-/*
-		else if (traversal_ptr->block_size % VOID_PTR_SIZE != 0 && traversal_ptr->next_block == NULL && traversal_ptr->block_size > (size + OVERHEAD_SIZE + VOID_PTR_SIZE))
-		{
-			int originalSize = traversal_ptr->block_size;
-			struct Block* fourByteBlock = traversal_ptr;
-			struct Block* tempBlock = fourByteBlock + 1;
-			tempBlock = (int*)tempBlock + 4;
-			fourByteBlock->next_block = tempBlock;
-			fourByteBlock->block_size = 4;
-			tempBlock->block_size = originalSize - (OVERHEAD_SIZE + 4);
-			tempBlock->next_block = NULL;
-		}
-		*/
